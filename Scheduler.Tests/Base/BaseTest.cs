@@ -3,12 +3,13 @@ using Scheduler.DAL;
 using Scheduler.BLL.Services;
 using Scheduler.BLL.Services.Interfaces;
 
-namespace Scheduler.Tests;
+namespace Scheduler.Tests.Base;
 
 public abstract class BaseTest : IDisposable
 {
     protected readonly SchedulerDbContext Context;
-    protected readonly IMeetingService Service;
+    protected readonly IMeetingService MeetingService;
+    protected readonly IUserService UserService;
 
     protected BaseTest(string? dbName = null)
     {
@@ -17,7 +18,8 @@ public abstract class BaseTest : IDisposable
             .Options;
 
         Context = new SchedulerDbContext(options);
-        Service = new MeetingService(Context);
+        MeetingService = new MeetingService(Context);
+        UserService = new UserService(Context);
     }
 
     public void Dispose()

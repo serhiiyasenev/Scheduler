@@ -1,7 +1,7 @@
 ﻿using FluentValidation.TestHelper;
 using Scheduler.BLL.DTOs;
 
-namespace Scheduler.Tests;
+namespace Scheduler.Tests.Unit;
 
 public class ScheduleRequestValidatorTests
 {
@@ -85,5 +85,20 @@ public class ScheduleRequestValidatorTests
 
         var result = _validator.TestValidate(model);
         Assert.Equal("Time window must be long enough to fit the meeting duration.", result.Errors[0].ErrorMessage);
+    }
+
+    [Fact]
+    public void Should_Have_Error_When_ParticipantIds_Is_Null()
+    {
+        var model = new ScheduleRequestDto
+        {
+            ParticipantIds = null!,
+            DurationMinutes = 30,
+            EarliestStart = DateTime.UtcNow,
+            LatestEnd = DateTime.UtcNow.AddHours(1)
+        };
+
+        var result = _validator.TestValidate(model);
+        result.ShouldHaveValidationErrorFor(x => x.ParticipantIds);
     }
 }

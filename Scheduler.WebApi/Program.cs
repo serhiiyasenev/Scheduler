@@ -21,7 +21,10 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<ScheduleRequestValidator>();
+
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IMeetingService, MeetingService>();
+
 builder.Services.AddDbContext<SchedulerDbContext>(options => options.UseInMemoryDatabase("SchedulerDb"));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

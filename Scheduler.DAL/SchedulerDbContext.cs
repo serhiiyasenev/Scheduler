@@ -7,7 +7,6 @@ namespace Scheduler.DAL
     {
         public DbSet<User> Users { get; set; }
         public DbSet<Meeting> Meetings { get; set; }
-        public DbSet<MeetingParticipant> MeetingParticipants { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

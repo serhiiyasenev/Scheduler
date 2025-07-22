@@ -65,5 +65,5 @@ graph TD
    dotnet run --project Scheduler.WebApi
    ```
 
-6. 🌐 **Open Swagger UI**
+6. 🌐 **Open Swagger UI**  
    👉 [https://localhost:7272/swagger/index.html](https://localhost:7272/swagger/index.html)

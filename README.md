@@ -1,4 +1,4 @@
-# Scheduler Architecture
+# 🔧 Scheduler Architecture
 
 This is a learning process that aims to demonstrate the basic skills of creating a Web API, the project follows the classic **3-tier architecture**, which ensures a clear separation of concerns, scalability, and maintainability.
 

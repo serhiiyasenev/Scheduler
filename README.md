@@ -8,9 +8,9 @@ This is a learning project that aims to demonstrate the basic skills of creating
 
 | Layer            | Project Name   | Responsibility                                      |
 |------------------|----------------|-----------------------------------------------------|
-| **Presentation** | `Scheduler.WebApi`     | Web layer: controllers, and settings. |
+| **Presentation** | `Scheduler.WebApi`     | Web layer: controllers and settings. |
 | **Business Logic** | `Scheduler.BLL`       | Core logic: DTOs and services.    |
-| **Data Access**  | `Scheduler.DAL`        | Database access: DbContext and In Memory Database. |
+| **Data Access**  | `Scheduler.DAL`        | Database access: Entities and DbContext. |
 | **Tests**        | `Scheduler.Tests`      | Integration and Unit tests.                 |
 
 ---

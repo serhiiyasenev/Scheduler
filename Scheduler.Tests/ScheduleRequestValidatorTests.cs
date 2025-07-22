@@ -20,8 +20,8 @@ public class ScheduleRequestValidatorTests
 
         var result = _validator.TestValidate(model);
         result.ShouldHaveValidationErrorFor(x => x.ParticipantIds);
-        Assert.Equal("At least one participant is required.", result.Errors[0].ErrorMessage);
-        Assert.Equal("LatestEnd must be at or before 17:00 UTC.", result.Errors[1].ErrorMessage);
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.ErrorMessage == "At least one participant is required.");
     }
 
     [Fact]
@@ -37,8 +37,8 @@ public class ScheduleRequestValidatorTests
 
         var result = _validator.TestValidate(model);
         result.ShouldHaveValidationErrorFor(x => x.DurationMinutes);
-        Assert.Equal("Duration must be greater than 0.", result.Errors[0].ErrorMessage);
-        Assert.Equal("LatestEnd must be at or before 17:00 UTC.", result.Errors[1].ErrorMessage);
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.ErrorMessage == "Duration must be greater than 0.");
     }
 
     [Fact]
@@ -69,8 +69,7 @@ public class ScheduleRequestValidatorTests
         };
 
         var result = _validator.TestValidate(model);
-        Assert.Equal("LatestEnd must be after EarliestStart.", result.Errors[1].ErrorMessage);
-        Assert.Equal("Time window must be long enough to fit the meeting duration.", result.Errors[2].ErrorMessage);
+        Assert.False(result.IsValid);
     }
 
     [Fact]

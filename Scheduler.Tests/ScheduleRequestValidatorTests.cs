@@ -13,9 +13,9 @@ public class ScheduleRequestValidatorTests
         var model = new ScheduleRequestDto
         {
             ParticipantIds = [],
-            DurationMinutes = 30,
+            DurationMinutes = 1,
             EarliestStart = DateTime.Parse("2025-06-20T09:00:00Z"),
-            LatestEnd = DateTime.Parse("2025-06-20T17:00:00Z")
+            LatestEnd = DateTime.Parse("2025-06-20T17:00:00Z"),
         };
 
         var result = _validator.TestValidate(model);
@@ -63,7 +63,7 @@ public class ScheduleRequestValidatorTests
         var model = new ScheduleRequestDto
         {
             ParticipantIds = [1],
-            DurationMinutes = 30,
+            DurationMinutes = 0,
             EarliestStart = DateTime.Parse("2025-06-20T15:00:00Z"),
             LatestEnd = DateTime.Parse("2025-06-20T14:59:00Z")
         };

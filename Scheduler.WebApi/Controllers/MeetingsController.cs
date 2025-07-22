@@ -37,7 +37,7 @@ namespace Scheduler.WebApi.Controllers
             return Ok(meetings);
         }
 
-        [HttpPost("FindEarliestMeetingSlotWithSuggestions")]
+        [HttpPost("CreateOrFindEarliestMeetingSlotWithSuggestions")]
         public async Task<IActionResult> ScheduleMeeting([FromBody] ScheduleRequestDto request)
         {
             var slot = await meetingService.FindEarliestMeetingSlotAsync(request);

@@ -35,14 +35,35 @@ graph TD
         D[(In Memory Database)]
     end
     C --> D
+```
 
+---
 
-# 🔧 How to Run
+## 🔧 How to Run
 
-Install .NET 9 SDK
-Clone the repository - "git clone https://github.com/serhiiyasenev/Scheduler.git"
-cd Scheduler
-dotnet build Scheduler.sln
-dotnet test Scheduler.sln
-dotnet run --project Scheduler.WebApi
-Open Swagger UI via https://localhost:7272/index.html
+1. 📦 **Install .NET 9 SDK**  
+   👉 [Download .NET 9 SDK](https://dotnet.microsoft.com/en-us/download)
+
+2. 📥 **Clone the repository**
+   ```bash
+   git clone https://github.com/serhiiyasenev/Scheduler.git
+   cd Scheduler
+   ```
+
+3. 🧱 **Build the solution**
+   ```bash
+   dotnet build Scheduler.sln
+   ```
+
+4. 🧪 **Run the tests**
+   ```bash
+   dotnet test Scheduler.sln
+   ```
+
+5. 🚀 **Run the Web API**
+   ```bash
+   dotnet run --project Scheduler.WebApi
+   ```
+
+6. 🌐 **Open Swagger UI**  
+   👉 [https://localhost:7272/index.html](https://localhost:7272/index.html)

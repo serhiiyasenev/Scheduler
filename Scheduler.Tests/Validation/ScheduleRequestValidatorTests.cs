@@ -1,7 +1,7 @@
 ﻿using FluentValidation.TestHelper;
 using Scheduler.BLL.DTOs;
 
-namespace Scheduler.Tests.Unit;
+namespace Scheduler.Tests.Validation;
 
 public class ScheduleRequestValidatorTests
 {

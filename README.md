@@ -1,3 +1,5 @@
+[![Swagger](https://img.shields.io/badge/Swagger-UI-85EA2D?logo=swagger&logoColor=white)]([https://gomarketplace.azurewebsites.net/swagger/index.html](https://scheduler-api-demo.azurewebsites.net/swagger/index.html))
+
 # 🔧 Scheduler Architecture
 
 This is a learning project that aims to demonstrate the basic skills of creating a Web API.

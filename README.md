@@ -1,10 +1,9 @@
-[![Swagger](https://img.shields.io/badge/Swagger-UI-85EA2D?logo=swagger&logoColor=white)]([https://gomarketplace.azurewebsites.net/swagger/index.html](https://scheduler-api-demo.azurewebsites.net/swagger/index.html))
-
 # 🔧 Scheduler Architecture
 
 This is a learning project that aims to demonstrate the basic skills of creating a Web API.
 The project follows the classic **3-tier architecture**, which ensures a clear separation of concerns, scalability, and maintainability.
 
+[![Swagger](https://img.shields.io/badge/Swagger-UI-85EA2D?logo=swagger&logoColor=white)](https://scheduler-api-demo.azurewebsites.net/swagger/index.html)
 ---
 
 ## Project Structure

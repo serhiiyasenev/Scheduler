@@ -5,6 +5,9 @@ using Scheduler.BLL.DTOs;
 using Scheduler.BLL.Services;
 using Scheduler.BLL.Services.Interfaces;
 using Scheduler.DAL;
+using Scheduler.DAL.Repositories.Interfaces;
+using Scheduler.DAL.Repositories;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,10 +25,13 @@ builder.Services.AddControllers();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<ScheduleRequestValidator>();
 
+builder.Services.Configure<MeetingSettings>(builder.Configuration.GetSection("MeetingSettings"));
+builder.Services.AddDbContext<SchedulerDbContext>(options => options.UseInMemoryDatabase("SchedulerDb"));
+
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IMeetingRepository, MeetingRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IMeetingService, MeetingService>();
-
-builder.Services.AddDbContext<SchedulerDbContext>(options => options.UseInMemoryDatabase("SchedulerDb"));
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

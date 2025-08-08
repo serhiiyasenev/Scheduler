@@ -9,6 +9,7 @@ namespace Scheduler.WebApi.Controllers
     public class UserController(IUserService userService) : ControllerBase
     {
         [HttpGet("GetAllUsers")]
+        [ProducesResponseType(typeof(List<User>), 200)]
         public async Task<ActionResult<List<User>>> GetAllUsers()
         {
             var users = await userService.GetAllUsersAsync();
@@ -16,6 +17,8 @@ namespace Scheduler.WebApi.Controllers
         }
 
         [HttpPost("CreateUser")]
+        [ProducesResponseType(typeof(User), 200)]
+        [ProducesResponseType(409)]
         public async Task<ActionResult<User>> CreateUser([FromBody] string name)
         {
             var user = await userService.CreateUserAsync(name);

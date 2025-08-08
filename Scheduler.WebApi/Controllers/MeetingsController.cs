@@ -8,8 +8,8 @@ namespace Scheduler.WebApi.Controllers
     [Route("api/[controller]")]
     public class MeetingsController(IMeetingService meetingService) : ControllerBase
     {
-
         [HttpGet("GetAllMeetings")]
+        [ProducesResponseType(typeof(List<ScheduleResponseDto>), 200)]
         public async Task<IActionResult> GetAllMeetings()
         {
             var result = await meetingService.GetAllMeetingsAsync();
@@ -38,6 +38,8 @@ namespace Scheduler.WebApi.Controllers
         }
 
         [HttpPost("CreateOrFindEarliestMeetingSlotWithSuggestions")]
+        [ProducesResponseType(typeof(ScheduleResponseDto), 200)]
+        [ProducesResponseType(409)]
         public async Task<IActionResult> ScheduleMeeting([FromBody] ScheduleRequestDto request)
         {
             var slot = await meetingService.FindEarliestMeetingSlotAsync(request);

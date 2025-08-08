@@ -24,7 +24,7 @@ public class UserServiceIntegrationTests : BaseTest
     public async Task CreateUserAsync_ShouldReturnNull_WhenUserWithSameNameExists()
     {
         // Arrange
-        Context.Users.Add(new User { Name = "bob" });
+        Context.Users.Add(new User { Name = "bob", NameNormalized = "bob"});
         await Context.SaveChangesAsync();
 
         // Act

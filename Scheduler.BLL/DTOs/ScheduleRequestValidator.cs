@@ -13,6 +13,10 @@ public class ScheduleRequestValidator : AbstractValidator<ScheduleRequestDto>
             .NotEmpty()
             .WithMessage("At least one participant is required.");
 
+        
+        RuleFor(x => x.ParticipantIds)
+            .Must(list => list == null || list.Distinct().Count() == list.Count)
+            .WithMessage("ParticipantIds must not contain duplicates.");
         RuleFor(x => x.DurationMinutes)
             .GreaterThan(0)
             .WithMessage("Duration must be greater than 0.");

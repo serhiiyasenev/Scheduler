@@ -1,0 +1,9 @@
+using Scheduler.DAL.Entities;
+
+namespace Scheduler.DAL.Repositories.Interfaces;
+
+public interface IUserRepository : IRepository<User>
+{
+    Task<List<User>> GetAllAsync();
+    Task<bool> ExistsByNormalizedNameAsync(string normalizedName);
+}

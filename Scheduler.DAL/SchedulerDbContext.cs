@@ -7,10 +7,13 @@ namespace Scheduler.DAL
     {
         public DbSet<User> Users { get; set; }
         public DbSet<Meeting> Meetings { get; set; }
+        public DbSet<MeetingParticipant> MeetingParticipants { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<MeetingParticipant>().HasKey(mp => new { mp.MeetingId, mp.UserId });
+
+            modelBuilder.Entity<User>().HasIndex(u => u.NameNormalized).IsUnique();
         }
     }
 }

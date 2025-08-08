@@ -1,7 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Scheduler.DAL;
+using Microsoft.Extensions.Options;
+using Scheduler.BLL.DTOs;
 using Scheduler.BLL.Services;
 using Scheduler.BLL.Services.Interfaces;
+using Scheduler.DAL;
+using Scheduler.DAL.Repositories;
+using Scheduler.DAL.Repositories.Interfaces;
 
 namespace Scheduler.Tests.Base;
 
@@ -10,6 +14,8 @@ public abstract class BaseTest : IDisposable
     protected readonly SchedulerDbContext Context;
     protected readonly IMeetingService MeetingService;
     protected readonly IUserService UserService;
+    protected readonly IMeetingRepository MeetingRepository;
+    protected readonly IUserRepository UserRepository;
 
     protected BaseTest(string? dbName = null)
     {
@@ -17,9 +23,16 @@ public abstract class BaseTest : IDisposable
             .UseInMemoryDatabase(databaseName: dbName ?? Guid.NewGuid().ToString())
             .Options;
 
+        var meetingSettings = Options.Create(new MeetingSettings
+        {
+            BaseUrl = "https://localhost:7272"
+        });
+
         Context = new SchedulerDbContext(options);
-        MeetingService = new MeetingService(Context);
-        UserService = new UserService(Context);
+        MeetingRepository = new MeetingRepository(Context);
+        UserRepository = new UserRepository(Context);
+        MeetingService = new MeetingService(MeetingRepository, meetingSettings);
+        UserService = new UserService(UserRepository);
     }
 
     public void Dispose()

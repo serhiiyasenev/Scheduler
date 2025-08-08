@@ -101,4 +101,20 @@ public class ScheduleRequestValidatorTests
         var result = _validator.TestValidate(model);
         result.ShouldHaveValidationErrorFor(x => x.ParticipantIds);
     }
+
+    [Fact]
+    public void Should_Have_Error_When_ParticipantIds_Have_Duplicates()
+    {
+        var now = DateTime.UtcNow.Date.AddHours(9);
+        var model = new ScheduleRequestDto
+        {
+            ParticipantIds = [1, 2, 2, 3],
+            DurationMinutes = 30,
+            EarliestStart = now,
+            LatestEnd = now.AddHours(2)
+        };
+
+        var result = _validator.TestValidate(model);
+        result.ShouldHaveValidationErrorFor(x => x.ParticipantIds);
+    }
 }

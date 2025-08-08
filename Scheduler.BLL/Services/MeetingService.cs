@@ -113,7 +113,7 @@ public class MeetingService(IMeetingRepository meetingRepository) : IMeetingServ
             Start = meeting.StartTime,
             End = meeting.EndTime,
             DurationMinutes = (int)(meeting.EndTime - meeting.StartTime).TotalMinutes,
-            ParticipantIds = meeting.MeetingParticipants?.Select(mp => mp.UserId).ToList() ?? new List<int>()
+            ParticipantIds = meeting.MeetingParticipants?.Select(mp => mp.UserId).ToList() ?? []
         };
     }
 

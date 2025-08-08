@@ -6,8 +6,7 @@ namespace Scheduler.BLL.Services
 {
     public class UserService(IUserRepository userRepository) : IUserService
     {
-        public Task<List<User>> GetAllUsersAsync()
-            => userRepository.GetAllAsync();
+        public Task<List<User>> GetAllUsersAsync() => userRepository.GetAllAsync();
 
         public async Task<User?> CreateUserAsync(string name)
         {
@@ -17,6 +16,7 @@ namespace Scheduler.BLL.Services
 
             var user = new User { Name = name.Trim(), NameNormalized = normalizedName };
             var newUser = await userRepository.AddAsync(user);
+            await userRepository.SaveChangesAsync();
             return newUser;
         }
     }

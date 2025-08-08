@@ -42,7 +42,6 @@ public class MeetingRepository(SchedulerDbContext context) : BaseRepository<Meet
             .ToList();
 
         var entry = await Set.AddAsync(meeting);
-        await Context.SaveChangesAsync();
         return entry.Entity;
     }
 }

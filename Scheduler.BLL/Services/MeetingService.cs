@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 using Scheduler.BLL.DTOs;
 using Scheduler.BLL.Services.Interfaces;
 using Scheduler.DAL.Entities;
+using Scheduler.DAL.Repositories;
 using Scheduler.DAL.Repositories.Interfaces;
 
 namespace Scheduler.BLL.Services;
@@ -29,7 +30,7 @@ public class MeetingService(IMeetingRepository meetingRepository, IOptions<Meeti
                             .OrderBy(x => x.StartTime)
                             .ToList();
 
-        DateTime cursor = from;
+        var cursor = from;
         foreach (var (s, e) in intervals)
         {
             if (cursor + duration <= s)
@@ -66,6 +67,7 @@ public class MeetingService(IMeetingRepository meetingRepository, IOptions<Meeti
         };
 
         var created = await meetingRepository.AddWithParticipantsAsync(meeting, dto.ParticipantIds);
+        await meetingRepository.SaveChangesAsync();
         return Map(created);
     }
 
@@ -87,7 +89,7 @@ public class MeetingService(IMeetingRepository meetingRepository, IOptions<Meeti
                             .OrderBy(x => x.StartTime)
                             .ToList();
 
-        DateTime cursor = from;
+        var cursor = from;
         while (cursor + duration <= to && suggestions.Count < maxSuggestions)
         {
             // find next busy interval that starts after cursor

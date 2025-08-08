@@ -11,7 +11,8 @@ public abstract class BaseRepository<T>(SchedulerDbContext context) : IRepositor
     public virtual async Task<T> AddAsync(T entity)
     {
         var entry = await Set.AddAsync(entity);
-        await Context.SaveChangesAsync();
         return entry.Entity;
     }
+
+    public Task SaveChangesAsync() => Context.SaveChangesAsync();
 }

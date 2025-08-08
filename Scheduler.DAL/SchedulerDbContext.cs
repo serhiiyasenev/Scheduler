@@ -12,9 +12,8 @@ namespace Scheduler.DAL
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<MeetingParticipant>().HasKey(mp => new { mp.MeetingId, mp.UserId });
-            modelBuilder.Entity<User>()
-                .HasIndex(u => u.NameNormalized)
-                .IsUnique();
+
+            modelBuilder.Entity<User>().HasIndex(u => u.NameNormalized).IsUnique();
         }
     }
 }

@@ -10,6 +10,7 @@ namespace Scheduler.WebApi.Controllers
     {
 
         [HttpGet("GetAllMeetings")]
+        [HttpGet]
         [ProducesResponseType(typeof(List<ScheduleResponseDto>), 200)]
         public async Task<IActionResult> GetAllMeetings()
         {
@@ -39,6 +40,7 @@ namespace Scheduler.WebApi.Controllers
         }
 
         [HttpPost("CreateOrFindEarliestMeetingSlotWithSuggestions")]
+        [HttpPost]
         [ProducesResponseType(typeof(ScheduleResponseDto), 200)]
         [ProducesResponseType(409)]
         public async Task<IActionResult> ScheduleMeeting([FromBody] ScheduleRequestDto request)

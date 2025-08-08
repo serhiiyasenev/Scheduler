@@ -5,9 +5,19 @@ using Scheduler.BLL.DTOs;
 using Scheduler.BLL.Services;
 using Scheduler.BLL.Services.Interfaces;
 using Scheduler.DAL;
+using Scheduler.DAL.Repositories.Interfaces;
+using Scheduler.DAL.Repositories;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
+
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IMeetingRepository, MeetingRepository>();
+
+// Services
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IMeetingService, MeetingService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>

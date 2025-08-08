@@ -16,9 +16,8 @@ namespace Scheduler.BLL.Services
             if (exists) return null;
 
             var user = new User { Name = name.Trim(), NameNormalized = normalizedName };
-            await userRepository.AddAsync(user);
-            await userRepository.SaveChangesAsync();
-            return user;
+            var newUser = await userRepository.AddAsync(user);
+            return newUser;
         }
     }
 }

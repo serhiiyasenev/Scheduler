@@ -11,11 +11,8 @@ using Scheduler.DAL.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IMeetingRepository, MeetingRepository>();
-
-// Services
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IMeetingService, MeetingService>();
 builder.Services.AddCors(options =>
@@ -32,8 +29,7 @@ builder.Services.AddControllers();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<ScheduleRequestValidator>();
 
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IMeetingService, MeetingService>();
+builder.Services.Configure<MeetingSettings>(builder.Configuration.GetSection("MeetingSettings"));
 
 builder.Services.AddDbContext<SchedulerDbContext>(options => options.UseInMemoryDatabase("SchedulerDb"));
 

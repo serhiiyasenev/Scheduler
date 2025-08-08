@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Scheduler.BLL.DTOs;
 using Scheduler.BLL.Services.Interfaces;
 using Scheduler.DAL.Entities;
@@ -5,8 +6,10 @@ using Scheduler.DAL.Repositories.Interfaces;
 
 namespace Scheduler.BLL.Services;
 
-public class MeetingService(IMeetingRepository meetingRepository) : IMeetingService
+public class MeetingService(IMeetingRepository meetingRepository, IOptions<MeetingSettings> settings) : IMeetingService
 {
+    private readonly MeetingSettings _settings = settings.Value;
+
     public async Task<List<ScheduleResponseDto>> GetAllMeetingsAsync()
     {
         var meetings = await meetingRepository.GetAllAsync();
@@ -20,6 +23,7 @@ public class MeetingService(IMeetingRepository meetingRepository) : IMeetingServ
         var duration = TimeSpan.FromMinutes(request.DurationMinutes);
 
         var busy = await meetingRepository.GetMeetingsForParticipantsInRangeAsync(request.ParticipantIds, from, to);
+        
         // Merge busy intervals
         var intervals = busy.Select(m => (m.StartTime, m.EndTime))
                             .OrderBy(x => x.StartTime)
@@ -62,7 +66,6 @@ public class MeetingService(IMeetingRepository meetingRepository) : IMeetingServ
         };
 
         var created = await meetingRepository.AddWithParticipantsAsync(meeting, dto.ParticipantIds);
-        await meetingRepository.SaveChangesAsync();
         return Map(created);
     }
 
@@ -117,5 +120,5 @@ public class MeetingService(IMeetingRepository meetingRepository) : IMeetingServ
         };
     }
 
-    private string BuildMeetingLink(int meetingId) => $"https://localhost:7272/api/Meetings/{meetingId}";
+    private string BuildMeetingLink(int meetingId) => $"{_settings.BaseUrl}/api/Meetings/{meetingId}";
 }

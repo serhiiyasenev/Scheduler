@@ -2,7 +2,6 @@ using Microsoft.Extensions.Options;
 using Scheduler.BLL.DTOs;
 using Scheduler.BLL.Services.Interfaces;
 using Scheduler.DAL.Entities;
-using Scheduler.DAL.Repositories;
 using Scheduler.DAL.Repositories.Interfaces;
 
 namespace Scheduler.BLL.Services;
@@ -23,12 +22,7 @@ public class MeetingService(IMeetingRepository meetingRepository, IOptions<Meeti
         var to = request.LatestEnd;
         var duration = TimeSpan.FromMinutes(request.DurationMinutes);
 
-        var busy = await meetingRepository.GetMeetingsForParticipantsInRangeAsync(request.ParticipantIds, from, to);
-        
-        // Merge busy intervals
-        var intervals = busy.Select(m => (m.StartTime, m.EndTime))
-                            .OrderBy(x => x.StartTime)
-                            .ToList();
+        var intervals = await GetBusyIntervals(request.ParticipantIds, from, to);
 
         var cursor = from;
         foreach (var (s, e) in intervals)
@@ -43,10 +37,7 @@ public class MeetingService(IMeetingRepository meetingRepository, IOptions<Meeti
                 break;
         }
 
-        if (cursor + duration <= to)
-            return cursor;
-
-        return null;
+        return cursor + duration <= to ? cursor : null;
     }
 
     public async Task<List<ScheduleResponseDto>> GetMeetingsByUserIdAsync(int userId)
@@ -84,20 +75,15 @@ public class MeetingService(IMeetingRepository meetingRepository, IOptions<Meeti
         var duration = TimeSpan.FromMinutes(request.DurationMinutes);
         var suggestions = new List<DateTime>();
 
-        var busy = await meetingRepository.GetMeetingsForParticipantsInRangeAsync(request.ParticipantIds, from, to);
-        var intervals = busy.Select(m => (m.StartTime, m.EndTime))
-                            .OrderBy(x => x.StartTime)
-                            .ToList();
+        var intervals = await GetBusyIntervals(request.ParticipantIds, from, to);
 
         var cursor = from;
         while (cursor + duration <= to && suggestions.Count < maxSuggestions)
         {
-            // find next busy interval that starts after cursor
-            var nextBusy = intervals.FirstOrDefault(iv => iv.Item1 < cursor + duration && iv.Item2 > cursor);
+            var nextBusy = intervals.FirstOrDefault(iv => iv.Start < cursor + duration && iv.End > cursor);
             if (nextBusy != default)
             {
-                cursor = nextBusy.Item2 > cursor ? nextBusy.Item2 : cursor;
-                cursor = cursor.AddMinutes(0); // no-op; clarity
+                cursor = nextBusy.End > cursor ? nextBusy.End : cursor;
             }
             else
             {
@@ -109,18 +95,24 @@ public class MeetingService(IMeetingRepository meetingRepository, IOptions<Meeti
         return suggestions;
     }
 
-    private ScheduleResponseDto Map(Meeting meeting)
+    private async Task<List<(DateTime Start, DateTime End)>> GetBusyIntervals(IEnumerable<int> participantIds, DateTime from, DateTime to)
     {
-        return new ScheduleResponseDto
-        {
-            MeetingId = meeting.Id,
-            Link = BuildMeetingLink(meeting.Id),
-            Start = meeting.StartTime,
-            End = meeting.EndTime,
-            DurationMinutes = (int)(meeting.EndTime - meeting.StartTime).TotalMinutes,
-            ParticipantIds = meeting.MeetingParticipants?.Select(mp => mp.UserId).ToList() ?? []
-        };
+        var busyMeetings = await meetingRepository.GetMeetingsForParticipantsInRangeAsync(participantIds, from, to);
+        return busyMeetings
+            .Select(m => (m.StartTime, m.EndTime))
+            .OrderBy(x => x.StartTime)
+            .ToList();
     }
+
+    private ScheduleResponseDto Map(Meeting meeting) => new()
+    {
+        MeetingId = meeting.Id,
+        Link = BuildMeetingLink(meeting.Id),
+        Start = meeting.StartTime,
+        End = meeting.EndTime,
+        DurationMinutes = (int)(meeting.EndTime - meeting.StartTime).TotalMinutes,
+        ParticipantIds = meeting.MeetingParticipants?.Select(mp => mp.UserId).ToList() ?? []
+    };
 
     private string BuildMeetingLink(int meetingId) => $"{_settings.BaseUrl}/api/Meetings/{meetingId}";
 }

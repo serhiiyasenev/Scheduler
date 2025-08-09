@@ -31,7 +31,7 @@ public abstract class BaseTest : IDisposable
         Context = new SchedulerDbContext(options);
         MeetingRepository = new MeetingRepository(Context);
         UserRepository = new UserRepository(Context);
-        MeetingService = new MeetingService(MeetingRepository, meetingSettings);
+        MeetingService = new MeetingService(MeetingRepository, UserRepository, meetingSettings);
         UserService = new UserService(UserRepository);
     }
 

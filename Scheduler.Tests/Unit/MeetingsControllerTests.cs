@@ -98,7 +98,7 @@ public class MeetingsControllerTests
     [Fact]
     public async Task GetUserMeetings_ShouldReturnUserMeetings()
     {
-        var userId = 1;
+        const int userId = 1;
         var meetings = new List<ScheduleResponseDto>
         {
             new() { MeetingId = 1, Start = DateTime.UtcNow, End = DateTime.UtcNow.AddMinutes(60) }
@@ -151,7 +151,7 @@ public class MeetingsControllerTests
     [Fact]
     public async Task GetMeetingById_ShouldReturnMeeting_WhenFound()
     {
-        var meetingId = 42;
+        const int meetingId = 42;
         var expected = new ScheduleResponseDto { MeetingId = meetingId };
         _mockService.Setup(s => s.GetMeetingByIdAsync(meetingId)).ReturnsAsync(expected);
 

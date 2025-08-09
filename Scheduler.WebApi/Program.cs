@@ -5,8 +5,8 @@ using Scheduler.BLL.DTOs;
 using Scheduler.BLL.Services;
 using Scheduler.BLL.Services.Interfaces;
 using Scheduler.DAL;
-using Scheduler.DAL.Repositories.Interfaces;
 using Scheduler.DAL.Repositories;
+using Scheduler.DAL.Repositories.Interfaces;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,7 +21,8 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options => { options.Filters.Add<ExceptionFilter>(); });
+
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<ScheduleRequestValidator>();
 

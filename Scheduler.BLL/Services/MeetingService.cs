@@ -1,12 +1,13 @@
 using Microsoft.Extensions.Options;
 using Scheduler.BLL.DTOs;
+using Scheduler.BLL.Models;
 using Scheduler.BLL.Services.Interfaces;
 using Scheduler.DAL.Entities;
 using Scheduler.DAL.Repositories.Interfaces;
 
 namespace Scheduler.BLL.Services;
 
-public class MeetingService(IMeetingRepository meetingRepository, IOptions<MeetingSettings> settings) : IMeetingService
+public class MeetingService(IMeetingRepository meetingRepository, IUserRepository userRepository, IOptions<MeetingSettings> settings) : IMeetingService
 {
     private readonly MeetingSettings _settings = settings.Value;
 
@@ -18,6 +19,8 @@ public class MeetingService(IMeetingRepository meetingRepository, IOptions<Meeti
 
     public async Task<DateTime?> FindEarliestMeetingSlotAsync(ScheduleRequestDto request)
     {
+        await EnsureParticipantsExistAsync(request.ParticipantIds);
+
         var from = request.EarliestStart;
         var to = request.LatestEnd;
         var duration = TimeSpan.FromMinutes(request.DurationMinutes);
@@ -42,12 +45,18 @@ public class MeetingService(IMeetingRepository meetingRepository, IOptions<Meeti
 
     public async Task<List<ScheduleResponseDto>> GetMeetingsByUserIdAsync(int userId)
     {
+        var existing = await userRepository.GetExistingUserIdsAsync([userId]);
+        if (existing.Count == 0)
+            throw new EntityNotFoundException($"User not found: {userId}");
+
         var meetings = await meetingRepository.GetByUserIdAsync(userId);
         return meetings.Select(Map).ToList();
     }
 
     public async Task<ScheduleResponseDto?> CreateMeetingAsync(ScheduleRequestDto dto)
     {
+        await EnsureParticipantsExistAsync(dto.ParticipantIds);
+
         var start = await FindEarliestMeetingSlotAsync(dto);
         if (start is null) return null;
 
@@ -70,6 +79,8 @@ public class MeetingService(IMeetingRepository meetingRepository, IOptions<Meeti
 
     public async Task<List<DateTime>> SuggestAvailableSlotsAsync(ScheduleRequestDto request, int maxSuggestions = 3)
     {
+        await EnsureParticipantsExistAsync(request.ParticipantIds);
+
         var from = request.EarliestStart;
         var to = request.LatestEnd;
         var duration = TimeSpan.FromMinutes(request.DurationMinutes);
@@ -102,6 +113,14 @@ public class MeetingService(IMeetingRepository meetingRepository, IOptions<Meeti
             .Select(m => (m.StartTime, m.EndTime))
             .OrderBy(x => x.StartTime)
             .ToList();
+    }
+
+    private async Task EnsureParticipantsExistAsync(List<int> participantIds)
+    {
+        var existing = await userRepository.GetExistingUserIdsAsync(participantIds);
+        var missing = participantIds.Except(existing).ToList();
+        if (missing.Count > 0)
+            throw new EntityNotFoundException($"Users not found: {string.Join(", ", missing)}");
     }
 
     private ScheduleResponseDto Map(Meeting meeting) => new()

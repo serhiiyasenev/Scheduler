@@ -17,6 +17,8 @@ namespace Scheduler.WebApi.Controllers
         }
 
         [HttpGet("GetMeetingById/{id}")]
+        [ProducesResponseType(typeof(ScheduleResponseDto), 200)]
+        [ProducesResponseType(404)]
         public async Task<IActionResult> GetMeetingById(int id)
         {
             var meeting = await meetingService.GetMeetingByIdAsync(id);
@@ -24,13 +26,18 @@ namespace Scheduler.WebApi.Controllers
         }
 
         [HttpPost("FindSlot")]
+        [ProducesResponseType(typeof(FindSlotResponseDto), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(409)]
         public async Task<IActionResult> FindSlot([FromBody] ScheduleRequestDto request)
         {
             var slot = await meetingService.FindEarliestMeetingSlotAsync(request);
-            return slot == null ? Conflict("No available slot.") : Ok(new { EarliestSlot = slot });
+            return slot == null ? Conflict("No available slot.") : Ok(new FindSlotResponseDto(slot.Value));
         }
 
         [HttpGet("GetMeetingsByUserId/{userId}")]
+        [ProducesResponseType(typeof(List<ScheduleResponseDto>), 200)]
+        [ProducesResponseType(404)]
         public async Task<IActionResult> GetMeetingsByUser(int userId)
         {
             var meetings = await meetingService.GetMeetingsByUserIdAsync(userId);
@@ -39,6 +46,7 @@ namespace Scheduler.WebApi.Controllers
 
         [HttpPost("CreateOrFindEarliestMeetingSlotWithSuggestions")]
         [ProducesResponseType(typeof(ScheduleResponseDto), 200)]
+        [ProducesResponseType(404)]
         [ProducesResponseType(409)]
         public async Task<IActionResult> ScheduleMeeting([FromBody] ScheduleRequestDto request)
         {

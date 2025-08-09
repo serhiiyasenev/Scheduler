@@ -9,7 +9,7 @@ public class UserServiceIntegrationTests : BaseTest
     public async Task CreateUserAsync_ShouldCreateNewUser_WhenNameIsUnique()
     {
         // Arrange
-        var name = "Alice";
+        const string name = "Alice";
 
         // Act
         var result = await UserService.CreateUserAsync(name);
@@ -18,6 +18,26 @@ public class UserServiceIntegrationTests : BaseTest
         Assert.NotNull(result);
         Assert.Equal(name, result!.Name);
         Assert.Single(Context.Users);
+    }
+
+    [Fact]
+    public async Task GetAllUserAsync_ShouldCreateNewUser_WhenNameIsUnique()
+    {
+        // Arrange
+        const string name1 = "Bob";
+        const string name2 = "Alice";
+
+        await UserService.CreateUserAsync(name1);
+        await UserService.CreateUserAsync(name2);
+
+        // Act
+        var result = await UserService.GetAllUsersAsync();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Count);
+        Assert.Equal(name1, result.First().Name);
+        Assert.Equal(name2, result.Last().Name);
     }
 
     [Fact]

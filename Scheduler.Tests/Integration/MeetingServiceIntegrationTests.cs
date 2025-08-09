@@ -1,4 +1,5 @@
 ﻿using Scheduler.BLL.DTOs;
+using Scheduler.BLL.Models;
 using Scheduler.DAL.Entities;
 using Scheduler.Tests.Base;
 
@@ -10,7 +11,7 @@ public class MeetingServiceIntegrationTests : BaseTest
     public async Task GetUserMeetingsAsync_ShouldReturnEmptyList_WhenNoMeetings()
     {
         var user = await UserService.CreateUserAsync("TestUser");
-        var meetings = await MeetingService.GetMeetingsByUserIdAsync(user.Id);
+        var meetings = await MeetingService.GetMeetingsByUserIdAsync(user!.Id);
 
         Assert.NotNull(meetings);
         Assert.Empty(meetings);
@@ -116,7 +117,7 @@ public class MeetingServiceIntegrationTests : BaseTest
             EndTime = DateTime.Parse("2025-06-20T17:00:00Z"),
             MeetingParticipants = new List<MeetingParticipant>
             {
-                new() { UserId = user.Id }
+                new() { UserId = user!.Id }
             }
         });
         await Context.SaveChangesAsync();
@@ -132,5 +133,124 @@ public class MeetingServiceIntegrationTests : BaseTest
         var slots = await MeetingService.SuggestAvailableSlotsAsync(request);
 
         Assert.Empty(slots);
+    }
+
+    [Fact]
+    public async Task CreateMeetingAsync_ShouldThrow_WhenAnyParticipantDoesNotExist()
+    {
+        var user = await UserService.CreateUserAsync("Exists");
+        var request = new ScheduleRequestDto
+        {
+            ParticipantIds = [user!.Id, 9999],
+            DurationMinutes = 30,
+            EarliestStart = DateTime.Parse("2025-06-20T09:00:00Z"),
+            LatestEnd = DateTime.Parse("2025-06-20T17:00:00Z")
+        };
+
+        await Assert.ThrowsAsync<EntityNotFoundException>(() => MeetingService.CreateMeetingAsync(request));
+    }
+
+    [Fact]
+    public async Task FindEarliestMeetingSlotAsync_ShouldThrow_WhenAnyParticipantDoesNotExist()
+    {
+        var request = new ScheduleRequestDto
+        {
+            ParticipantIds = [12345],
+            DurationMinutes = 30,
+            EarliestStart = DateTime.Parse("2025-06-20T09:00:00Z"),
+            LatestEnd = DateTime.Parse("2025-06-20T17:00:00Z")
+        };
+
+        await Assert.ThrowsAsync<EntityNotFoundException>(() => MeetingService.FindEarliestMeetingSlotAsync(request));
+    }
+
+    [Fact]
+    public async Task SuggestAvailableSlotsAsync_ShouldThrow_WhenAnyParticipantDoesNotExist()
+    {
+        var request = new ScheduleRequestDto
+        {
+            ParticipantIds = [42],
+            DurationMinutes = 30,
+            EarliestStart = DateTime.Parse("2025-06-20T09:00:00Z"),
+            LatestEnd = DateTime.Parse("2025-06-20T12:00:00Z")
+        };
+
+        await Assert.ThrowsAsync<EntityNotFoundException>(() => MeetingService.SuggestAvailableSlotsAsync(request));
+    }
+
+    [Fact]
+    public async Task GetMeetingsByUserIdAsync_ShouldThrow_WhenUserDoesNotExist()
+    {
+        await Assert.ThrowsAsync<EntityNotFoundException>(() => MeetingService.GetMeetingsByUserIdAsync(123));
+    }
+
+    [Fact]
+    public async Task CreateMeetingAsync_ShouldReturnLink_UsingSettingsBaseUrl()
+    {
+        var user1 = await UserService.CreateUserAsync("A");
+        var user2 = await UserService.CreateUserAsync("B");
+
+        var req = new ScheduleRequestDto
+        {
+            ParticipantIds = [user1!.Id, user2!.Id],
+            DurationMinutes = 30,
+            EarliestStart = DateTime.Parse("2025-06-20T09:00:00Z"),
+            LatestEnd = DateTime.Parse("2025-06-20T17:00:00Z")
+        };
+
+        var created = await MeetingService.CreateMeetingAsync(req);
+
+        Assert.NotNull(created);
+        Assert.Contains("/api/Meetings/", created.Link);
+        Assert.True(created.MeetingId > 0);
+    }
+
+    [Fact]
+    public async Task CreateMeetingAsync_ShouldDeduplicateParticipants()
+    {
+        var user1 = await UserService.CreateUserAsync("Dup1");
+        var user2 = await UserService.CreateUserAsync("Dup2");
+
+        var req = new ScheduleRequestDto
+        {
+            ParticipantIds = [user1!.Id, user1.Id, user2!.Id, user2.Id],
+            DurationMinutes = 30,
+            EarliestStart = DateTime.Parse("2025-06-20T09:00:00Z"),
+            LatestEnd = DateTime.Parse("2025-06-20T17:00:00Z")
+        };
+
+        var created = await MeetingService.CreateMeetingAsync(req);
+
+        Assert.NotNull(created);
+        Assert.Equal(2, created.ParticipantIds.Distinct().Count());
+    }
+
+    [Fact]
+    public async Task SuggestAvailableSlotsAsync_ShouldRespectMaxSuggestions_AndBeOrdered()
+    {
+        var user = await UserService.CreateUserAsync("SlotsUser");
+
+        Context.Meetings.Add(new Meeting
+        {
+            StartTime = DateTime.Parse("2025-06-20T09:00:00Z"),
+            EndTime = DateTime.Parse("2025-06-20T10:00:00Z"),
+            MeetingParticipants = new List<MeetingParticipant> { new() { UserId = user!.Id } }
+        });
+
+        await Context.SaveChangesAsync();
+
+        var req = new ScheduleRequestDto
+        {
+            ParticipantIds = [user.Id],
+            DurationMinutes = 60,
+            EarliestStart = DateTime.Parse("2025-06-20T09:00:00Z"),
+            LatestEnd = DateTime.Parse("2025-06-20T12:00:00Z")
+        };
+
+        var slots = await MeetingService.SuggestAvailableSlotsAsync(req, maxSuggestions: 2);
+
+        Assert.Equal(2, slots.Count);
+        Assert.True(slots[0] < slots[1]);
+        Assert.Equal(DateTime.Parse("2025-06-20T10:00:00Z"), slots[0]);
     }
 }

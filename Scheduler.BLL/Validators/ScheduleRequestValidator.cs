@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
+using Scheduler.BLL.DTOs;
 
-namespace Scheduler.BLL.DTOs;
+namespace Scheduler.BLL.Validators;
 
 public class ScheduleRequestValidator : AbstractValidator<ScheduleRequestDto>
 {

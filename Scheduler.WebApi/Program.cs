@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Scheduler.BLL.DTOs;
 using Scheduler.BLL.Services;
 using Scheduler.BLL.Services.Interfaces;
+using Scheduler.BLL.Validators;
 using Scheduler.DAL;
 using Scheduler.DAL.Repositories;
 using Scheduler.DAL.Repositories.Interfaces;

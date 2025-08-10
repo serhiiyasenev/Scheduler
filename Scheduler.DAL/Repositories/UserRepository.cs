@@ -6,19 +6,23 @@ namespace Scheduler.DAL.Repositories;
 
 public class UserRepository(SchedulerDbContext context) : BaseRepository<User>(context), IUserRepository
 {
-    public Task<List<User>> GetAllAsync()
-        => Set.AsNoTracking().ToListAsync();
+    public async Task<List<User>> GetAllAsync()
+        => await Set.AsNoTracking().ToListAsync();
 
-    public Task<bool> ExistsByNormalizedNameAsync(string normalizedName)
-        => Set.AsNoTracking().AnyAsync(u => u.NameNormalized == normalizedName);
+    public async Task<bool> ExistsByNormalizedNameAsync(string normalizedName)
+        => await Set.AsNoTracking().AnyAsync(u => u.NameNormalized == normalizedName);
 
-    public Task<List<int>> GetExistingUserIdsAsync(IEnumerable<int> ids)
+    public async Task<List<int>> GetExistingUserIdsAsync(IEnumerable<int> ids)
     {
         var distinctIds = ids.Distinct().ToList();
-        return Set
+        return await Set
             .Where(u => distinctIds.Contains(u.Id))
             .Select(u => u.Id)
             .ToListAsync();
     }
 
+    public async Task<User?> GetUserByIdAsync(int id)
+    {
+        return await Set.FindAsync(id);
+    }
 }

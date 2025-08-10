@@ -10,7 +10,7 @@ public class MeetingServiceIntegrationTests : BaseTest
     [Fact]
     public async Task GetUserMeetingsAsync_ShouldReturnEmptyList_WhenNoMeetings()
     {
-        var user = await UserService.CreateUserAsync("TestUser");
+        var user = await UserService.CreateUserAsync(new CreateUserRequest("TestUser"));
         var meetings = await MeetingService.GetMeetingsByUserIdAsync(user!.Id);
 
         Assert.NotNull(meetings);
@@ -36,7 +36,7 @@ public class MeetingServiceIntegrationTests : BaseTest
     [Fact]
     public async Task GetUserMeetingsAsync_ShouldReturnScheduledMeetings()
     {
-        var user = await UserService.CreateUserAsync("UserWithMeeting");
+        var user = await UserService.CreateUserAsync(new CreateUserRequest("UserWithMeeting"));
 
         var meeting = new Meeting
         {
@@ -44,7 +44,7 @@ public class MeetingServiceIntegrationTests : BaseTest
             EndTime = new DateTime(2025, 6, 20, 15, 0, 0, DateTimeKind.Utc),
             MeetingParticipants = new List<MeetingParticipant>
             {
-                new() { UserId = user.Id }
+                new() { UserId = user!.Id }
             }
         };
         Context.Meetings.Add(meeting);
@@ -59,13 +59,13 @@ public class MeetingServiceIntegrationTests : BaseTest
     [Fact]
     public async Task CreateUserAndScheduleMeeting_ShouldReturnValidSlot()
     {
-        var user1 = await UserService.CreateUserAsync("User1");
-        var user2 = await UserService.CreateUserAsync("User2");
-        var user3 = await UserService.CreateUserAsync("User3");
+        var user1 = await UserService.CreateUserAsync(new CreateUserRequest("User1"));
+        var user2 = await UserService.CreateUserAsync(new CreateUserRequest("User2"));
+        var user3 = await UserService.CreateUserAsync(new CreateUserRequest("User3"));
 
         var request = new ScheduleRequestDto
         {
-            ParticipantIds = [user1.Id, user2.Id, user3.Id],
+            ParticipantIds = [user1!.Id, user2!.Id, user3!.Id],
             DurationMinutes = 60,
             EarliestStart = new DateTime(2025, 6, 20, 9, 0, 0, DateTimeKind.Utc),
             LatestEnd = new DateTime(2025, 6, 20, 17, 0, 0, DateTimeKind.Utc)
@@ -80,7 +80,7 @@ public class MeetingServiceIntegrationTests : BaseTest
     [Fact]
     public async Task FindEarliestMeetingSlotAsync_ShouldReturnNextAvailableSlot_WhenOverlapping()
     {
-        var user = await UserService.CreateUserAsync("BusyUser");
+        var user = await UserService.CreateUserAsync(new CreateUserRequest("BusyUser"));
 
         Context.Meetings.Add(new Meeting
         {
@@ -88,7 +88,7 @@ public class MeetingServiceIntegrationTests : BaseTest
             EndTime = new DateTime(2025, 6, 20, 10, 0, 0, DateTimeKind.Utc),
             MeetingParticipants = new List<MeetingParticipant>
             {
-                new() { UserId = user.Id }
+                new() { UserId = user!.Id }
             }
         });
         await Context.SaveChangesAsync();
@@ -109,7 +109,7 @@ public class MeetingServiceIntegrationTests : BaseTest
     [Fact]
     public async Task SuggestAvailableSlotsAsync_ShouldReturnEmpty_WhenNoAvailableSlot()
     {
-        var user = await UserService.CreateUserAsync("Busy");
+        var user = await UserService.CreateUserAsync(new CreateUserRequest("Busy"));
 
         Context.Meetings.Add(new Meeting
         {
@@ -138,7 +138,7 @@ public class MeetingServiceIntegrationTests : BaseTest
     [Fact]
     public async Task CreateMeetingAsync_ShouldThrow_WhenAnyParticipantDoesNotExist()
     {
-        var user = await UserService.CreateUserAsync("Exists");
+        var user = await UserService.CreateUserAsync(new CreateUserRequest("Exists"));
         var request = new ScheduleRequestDto
         {
             ParticipantIds = [user!.Id, 9999],
@@ -187,8 +187,8 @@ public class MeetingServiceIntegrationTests : BaseTest
     [Fact]
     public async Task CreateMeetingAsync_ShouldReturnLink_UsingSettingsBaseUrl()
     {
-        var user1 = await UserService.CreateUserAsync("A");
-        var user2 = await UserService.CreateUserAsync("B");
+        var user1 = await UserService.CreateUserAsync(new CreateUserRequest("A"));
+        var user2 = await UserService.CreateUserAsync(new CreateUserRequest("B"));
 
         var req = new ScheduleRequestDto
         {
@@ -201,15 +201,15 @@ public class MeetingServiceIntegrationTests : BaseTest
         var created = await MeetingService.CreateMeetingAsync(req);
 
         Assert.NotNull(created);
-        Assert.Contains("/api/Meetings/", created.Link);
+        Assert.Contains("/api/meetings/", created.Link);
         Assert.True(created.MeetingId > 0);
     }
 
     [Fact]
     public async Task CreateMeetingAsync_ShouldDeduplicateParticipants()
     {
-        var user1 = await UserService.CreateUserAsync("Dup1");
-        var user2 = await UserService.CreateUserAsync("Dup2");
+        var user1 = await UserService.CreateUserAsync(new CreateUserRequest("Dup1"));
+        var user2 = await UserService.CreateUserAsync(new CreateUserRequest("Dup2"));
 
         var req = new ScheduleRequestDto
         {
@@ -228,7 +228,7 @@ public class MeetingServiceIntegrationTests : BaseTest
     [Fact]
     public async Task SuggestAvailableSlotsAsync_ShouldRespectMaxSuggestions_AndBeOrdered()
     {
-        var user = await UserService.CreateUserAsync("SlotsUser");
+        var user = await UserService.CreateUserAsync(new CreateUserRequest("SlotsUser"));
 
         Context.Meetings.Add(new Meeting
         {

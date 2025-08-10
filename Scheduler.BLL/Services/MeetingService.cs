@@ -45,8 +45,8 @@ public class MeetingService(IMeetingRepository meetingRepository, IUserRepositor
 
     public async Task<List<ScheduleResponseDto>> GetMeetingsByUserIdAsync(int userId)
     {
-        var existing = await userRepository.GetExistingUserIdsAsync([userId]);
-        if (existing.Count == 0)
+        var existing = await userRepository.GetUserByIdAsync(userId);
+        if (existing == null)
             throw new EntityNotFoundException($"User not found: {userId}");
 
         var meetings = await meetingRepository.GetByUserIdAsync(userId);
@@ -133,5 +133,5 @@ public class MeetingService(IMeetingRepository meetingRepository, IUserRepositor
         ParticipantIds = meeting.MeetingParticipants?.Select(mp => mp.UserId).ToList() ?? []
     };
 
-    private string BuildMeetingLink(int meetingId) => $"{_settings.BaseUrl}/api/Meetings/{meetingId}";
+    private string BuildMeetingLink(int meetingId) => $"{_settings.BaseUrl}/api/meetings/{meetingId}";
 }

@@ -1,5 +1,6 @@
 ﻿using FluentValidation.TestHelper;
 using Scheduler.BLL.DTOs;
+using Scheduler.BLL.Validators;
 
 namespace Scheduler.Tests.Validation;
 

@@ -1,19 +1,18 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Scheduler.DAL.Entities;
 
-namespace Scheduler.DAL
+namespace Scheduler.DAL;
+
+public class SchedulerDbContext(DbContextOptions<SchedulerDbContext> options) : DbContext(options)
 {
-    public class SchedulerDbContext(DbContextOptions<SchedulerDbContext> options) : DbContext(options)
+    public DbSet<User> Users { get; set; }
+    public DbSet<Meeting> Meetings { get; set; }
+    public DbSet<MeetingParticipant> MeetingParticipants { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        public DbSet<User> Users { get; set; }
-        public DbSet<Meeting> Meetings { get; set; }
-        public DbSet<MeetingParticipant> MeetingParticipants { get; set; }
+        modelBuilder.Entity<MeetingParticipant>().HasKey(mp => new { mp.MeetingId, mp.UserId });
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<MeetingParticipant>().HasKey(mp => new { mp.MeetingId, mp.UserId });
-
-            modelBuilder.Entity<User>().HasIndex(u => u.NameNormalized).IsUnique();
-        }
+        modelBuilder.Entity<User>().HasIndex(u => u.NameNormalized).IsUnique();
     }
 }

@@ -69,7 +69,7 @@ public class UserServiceIntegrationTests : BaseTest
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(1, result.Id);
+        Assert.Equal(createdUser.Id, result.Id);
         Assert.Equal("AlicE 2", result.Name);
         Assert.Equal("alice 2", result.NameNormalized);
     }

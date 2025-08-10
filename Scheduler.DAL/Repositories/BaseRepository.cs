@@ -14,5 +14,5 @@ public abstract class BaseRepository<T>(SchedulerDbContext context) : IRepositor
         return entry.Entity;
     }
 
-    public Task SaveChangesAsync() => Context.SaveChangesAsync();
+    public async Task SaveChangesAsync() => await Context.SaveChangesAsync();
 }

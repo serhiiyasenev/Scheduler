@@ -1,4 +1,5 @@
-﻿using Scheduler.DAL.Entities;
+﻿using Scheduler.BLL.DTOs;
+using Scheduler.DAL.Entities;
 using Scheduler.Tests.Base;
 
 namespace Scheduler.Tests.Integration;
@@ -9,14 +10,14 @@ public class UserServiceIntegrationTests : BaseTest
     public async Task CreateUserAsync_ShouldCreateNewUser_WhenNameIsUnique()
     {
         // Arrange
-        const string name = "Alice";
+        var request = new CreateUserRequest("Alice");
 
         // Act
-        var result = await UserService.CreateUserAsync(name);
+        var result = await UserService.CreateUserAsync(request);
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(name, result!.Name);
+        Assert.Equal(request.Name, result.Name);
         Assert.Single(Context.Users);
     }
 
@@ -24,11 +25,11 @@ public class UserServiceIntegrationTests : BaseTest
     public async Task GetAllUserAsync_ShouldCreateNewUser_WhenNameIsUnique()
     {
         // Arrange
-        const string name1 = "Bob";
-        const string name2 = "Alice";
+        var request1 = new CreateUserRequest("Alice");
+        var request2 = new CreateUserRequest("Bob");
 
-        await UserService.CreateUserAsync(name1);
-        await UserService.CreateUserAsync(name2);
+        await UserService.CreateUserAsync(request1);
+        await UserService.CreateUserAsync(request2);
 
         // Act
         var result = await UserService.GetAllUsersAsync();
@@ -36,8 +37,8 @@ public class UserServiceIntegrationTests : BaseTest
         // Assert
         Assert.NotNull(result);
         Assert.Equal(2, result.Count);
-        Assert.Equal(name1, result.First().Name);
-        Assert.Equal(name2, result.Last().Name);
+        Assert.Equal(request1.Name, result.First().Name);
+        Assert.Equal(request2.Name, result.Last().Name);
     }
 
     [Fact]
@@ -48,10 +49,28 @@ public class UserServiceIntegrationTests : BaseTest
         await Context.SaveChangesAsync();
 
         // Act
-        var result = await UserService.CreateUserAsync("  BoB  ");
+        var request = new CreateUserRequest("  BoB  ");
+        var result = await UserService.CreateUserAsync(request);
 
         // Assert
         Assert.Null(result);
         Assert.Single(Context.Users);
+    }
+
+    [Fact]
+    public async Task GetUserById_ShouldReturnUser_WhenUserExists()
+    {
+        // Arrange
+        var request = new CreateUserRequest("AlicE 2");
+        var createdUser = await UserService.CreateUserAsync(request);
+
+        // Act
+        var result = await UserService.GetUserByIdAsync(createdUser!.Id);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(1, result.Id);
+        Assert.Equal("AlicE 2", result.Name);
+        Assert.Equal("alice 2", result.NameNormalized);
     }
 }

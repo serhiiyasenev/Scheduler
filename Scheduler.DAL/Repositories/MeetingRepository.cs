@@ -6,27 +6,27 @@ namespace Scheduler.DAL.Repositories;
 
 public class MeetingRepository(SchedulerDbContext context) : BaseRepository<Meeting>(context), IMeetingRepository
 {
-    public Task<List<Meeting>> GetAllAsync()
-        => Set.AsNoTracking()
+    public async Task<List<Meeting>> GetAllAsync()
+        => await Set.AsNoTracking()
                .Include(m => m.MeetingParticipants)
                .ToListAsync();
 
-    public Task<Meeting?> GetByIdAsync(int id)
-        => Set.AsNoTracking()
+    public async Task<Meeting?> GetByIdAsync(int id)
+        => await Set.AsNoTracking()
                .Include(m => m.MeetingParticipants)
                .FirstOrDefaultAsync(m => m.Id == id);
 
-    public Task<List<Meeting>> GetByUserIdAsync(int userId)
-        => Set.AsNoTracking()
+    public async Task<List<Meeting>> GetByUserIdAsync(int userId)
+        => await Set.AsNoTracking()
                .Include(m => m.MeetingParticipants)
                .Where(m => m.MeetingParticipants.Any(mp => mp.UserId == userId))
                .OrderBy(m => m.StartTime)
                .ToListAsync();
 
-    public Task<List<Meeting>> GetMeetingsForParticipantsInRangeAsync(IEnumerable<int> participantIds, DateTime fromInclusive, DateTime toExclusive)
+    public async Task<List<Meeting>> GetMeetingsForParticipantsInRangeAsync(IEnumerable<int> participantIds, DateTime fromInclusive, DateTime toExclusive)
     {
         var ids = participantIds.Distinct().ToList();
-        return Set.AsNoTracking()
+        return await Set.AsNoTracking()
             .Include(m => m.MeetingParticipants)
             .Where(m => m.EndTime > fromInclusive && m.StartTime < toExclusive)
             .Where(m => m.MeetingParticipants.Any(mp => ids.Contains(mp.UserId)))

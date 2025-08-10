@@ -46,7 +46,7 @@ public class MeetingsControllerTests
 
         var result = await _controller.ScheduleMeeting(request);
 
-        var okResult = Assert.IsType<OkObjectResult>(result);
+        var okResult = Assert.IsType<CreatedAtActionResult>(result);
         var response = Assert.IsType<ScheduleResponseDto>(okResult.Value);
         Assert.Equal(expectedSlot, response.Start);
         Assert.Equal(expectedSlot.AddMinutes(request.DurationMinutes), response.End);
@@ -141,7 +141,7 @@ public class MeetingsControllerTests
 
         var result = await _controller.ScheduleMeeting(request);
 
-        var okResult = Assert.IsType<OkObjectResult>(result);
+        var okResult = Assert.IsType<CreatedAtActionResult>(result);
         var dto = Assert.IsType<ScheduleResponseDto>(okResult.Value);
         Assert.Equal(nextAvailableSlot, dto.Start);
         Assert.Equal(request.DurationMinutes, dto.DurationMinutes);

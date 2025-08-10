@@ -201,7 +201,7 @@ public class MeetingServiceIntegrationTests : BaseTest
         var created = await MeetingService.CreateMeetingAsync(req);
 
         Assert.NotNull(created);
-        Assert.Contains("/api/Meetings/", created.Link);
+        Assert.Contains("/api/meetings/", created.Link);
         Assert.True(created.MeetingId > 0);
     }
 

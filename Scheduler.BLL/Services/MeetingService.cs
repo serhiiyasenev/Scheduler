@@ -133,5 +133,5 @@ public class MeetingService(IMeetingRepository meetingRepository, IUserRepositor
         ParticipantIds = meeting.MeetingParticipants?.Select(mp => mp.UserId).ToList() ?? []
     };
 
-    private string BuildMeetingLink(int meetingId) => $"{_settings.BaseUrl}/api/Meetings/{meetingId}";
+    private string BuildMeetingLink(int meetingId) => $"{_settings.BaseUrl}/api/meetings/{meetingId}";
 }

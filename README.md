@@ -1,6 +1,7 @@
 # 🔧 Scheduler Architecture
 
-This is a learning project that aims to demonstrate the basic skills of creating a Web API.
+This project aims to demonstrate the fundamental skills required for creating a Web API.
+
 The project follows the classic **3-tier architecture**, which ensures a clear separation of concerns, scalability, and maintainability.
 
 [![Swagger](https://img.shields.io/badge/Swagger-UI-85EA2D?logo=swagger&logoColor=white)](https://scheduler-api-demo.azurewebsites.net/swagger/index.html)
@@ -69,3 +70,45 @@ graph TD
 
 6. 🌐 **Open Swagger UI**  
    👉 [https://localhost:7272/swagger/index.html](https://localhost:7272/swagger/index.html)
+
+---
+   ## 🛢️ Database Diagram
+
+```mermaid
+erDiagram
+    USER {
+        guid id
+        string name
+        string nameNormalized
+        string email
+    }
+
+    MEETING {
+        guid id
+        string title
+        string description
+        datetime startAt
+        datetime endAt
+        string location
+        string status
+        guid organizerId
+    }
+
+    MEETING_PARTICIPANT {
+        guid meetingId
+        guid userId
+        string role
+        boolean isRequired
+        string responseStatus
+    }
+
+    %% Relationships
+    USER    ||--o{ MEETING : organizes
+    MEETING ||--o{ MEETING_PARTICIPANT : has
+    USER    ||--o{ MEETING_PARTICIPANT : attends
+
+    %% Notes (comments only, not parsed):
+    %% - Unique index: USER.nameNormalized
+    %% - Composite PK: MEETING_PARTICIPANT (meetingId, userId)
+    %% - FKs: MEETING.organizerId -> USER.id; MEETING_PARTICIPANT.(meetingId->MEETING.id, userId->USER.id)
+```

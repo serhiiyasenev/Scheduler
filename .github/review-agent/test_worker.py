@@ -7,6 +7,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+import urllib.parse
 
 spec = importlib.util.spec_from_file_location("review_worker", Path(__file__).with_name("worker.py"))
 w = importlib.util.module_from_spec(spec)
@@ -36,6 +37,7 @@ class FakeGitHub:
         self.requests = []
         self.writes = []
         self.source = "return 0;\n"
+        self.sources = None
         self.before_pr_read = None
 
     def pages(self, path, limit=30):
@@ -58,8 +60,16 @@ class FakeGitHub:
         if "/check-runs" in path:
             return {"total_count": 1, "check_runs": [{"name": "Unit tests", "status": "in_progress", "conclusion": None}]}
         if path.startswith("/contents/"):
-            return {"type": "file", "size": len(self.source), "encoding": "base64",
-                    "content": base64.b64encode(self.source.encode()).decode()}
+            source = self.source
+            if self.sources is not None:
+                url = urllib.parse.urlsplit(path)
+                key = (urllib.parse.parse_qs(url.query)["ref"][0],
+                       urllib.parse.unquote(url.path.removeprefix("/contents/")))
+                if key not in self.sources:
+                    raise w.ReviewError("Remote request failed (HTTP 404)")
+                source = self.sources[key]
+            return {"type": "file", "size": len(source.encode()), "encoding": "base64",
+                    "content": base64.b64encode(source.encode()).decode()}
         if path.startswith("/git/trees/"):
             return {"tree": [{"path": "src/Mapper.cs", "type": "blob"}, {"path": ".env", "type": "blob"}], "truncated": False}
         if path.endswith("/pulls"):
@@ -212,6 +222,137 @@ class ReviewTests(unittest.TestCase):
         for finding in (dict(FINDING, shell="rm"), dict(FINDING, severity="critical"), dict(FINDING, line=True), dict(FINDING, reason="x" * 2501)):
             with self.assertRaises(w.ReviewError):
                 w.validate_schema({"findings": [finding]}, w.REVIEW_SCHEMA)
+
+
+class RenamedFileTests(unittest.TestCase):
+    old_path = "src/Legacy Mapper#.cs"
+    new_path = FILE["filename"]
+
+    def setUp(self):
+        self.github = FakeGitHub()
+        self.github.files[0].update(status="renamed", previous_filename=self.old_path)
+        self.github.sources = {(MERGE_BASE, self.old_path): "return amount;\n",
+                               (HEAD, self.new_path): "return 0;\n"}
+        self.finding = dict(FINDING, version="base", evidence="return amount;",
+                            reason="The rename removes the original amount mapping")
+
+    def test_reads_each_version_at_its_real_path_and_shares_base_alias_cache(self):
+        context = w.RepositoryContext(self.github, PR)
+        for path in (self.new_path, self.old_path):
+            result = context.read_file(path, "base", 1)
+            self.assertEqual(result["text"], "1: return amount;")
+            self.assertEqual(result["path"], self.new_path)
+            self.assertEqual(result["source_path"], self.old_path)
+        head = context.read_file(self.new_path, "head", 1)
+        self.assertEqual(head["text"], "1: return 0;")
+        self.assertEqual(head["source_path"], self.new_path)
+        reads = [p for p in self.github.requests if p.startswith("/contents/")]
+        self.assertEqual(reads, [f"/contents/src/Legacy%20Mapper%23.cs?ref={MERGE_BASE}",
+                                 f"/contents/{self.new_path}?ref={HEAD}"])
+
+    def test_base_aliases_verify_and_deduplicate_to_the_same_finding_identity(self):
+        context = w.RepositoryContext(self.github, PR)
+        findings = [dict(self.finding, path=path, status="supported")
+                    for path in (self.old_path, self.new_path)]
+        original = copy.deepcopy(findings)
+        result = w.validate_findings({"findings": findings}, context, verification=True)
+        self.assertEqual(result, [dict(self.finding, status="supported")])
+        self.assertEqual(findings, original)
+
+    def test_head_finding_uses_new_path_and_head_evidence(self):
+        context = w.RepositoryContext(self.github, PR)
+        result = w.validate_findings({"findings": [dict(FINDING, status="supported")]},
+                                     context, verification=True)
+        self.assertEqual(result[0]["status"], "supported")
+        with self.assertRaises(w.ReviewError):
+            w.validate_findings({"findings": [dict(FINDING, path=self.old_path)]}, context)
+
+    def test_full_review_preserves_identity_across_reviewer_and_verifier_aliases(self):
+        for reviewer_path, verifier_path in ((self.new_path, self.old_path),
+                                             (self.old_path, self.new_path)):
+            with self.subTest(reviewer_path=reviewer_path):
+                model = FakeModel()
+                with patch.object(model, "run", side_effect=[
+                    {"findings": [dict(self.finding, path=reviewer_path)]},
+                    {"findings": [dict(self.finding, path=verifier_path, status="supported")]},
+                    copy.deepcopy(PRESENTATION),
+                ]) as run:
+                    report = w.review(self.github, PR, model)
+                self.assertEqual(report["state"], "reviewed")
+                self.assertEqual(report["findings"], [dict(self.finding, status="supported")])
+                self.assertEqual(run.call_args_list[1].args[1]["candidates"], [self.finding])
+                self.assertEqual(report["presentation"]["changes"][0]["kind"], "behavior")
+                # Persisted reports must retain enough metadata for both renderers.
+                report = json.loads(json.dumps(report))
+                base_url = f"https://github.com/{REPOSITORY}/blob/{MERGE_BASE}/src/Legacy%20Mapper%23.cs#L1"
+                self.assertEqual(w.location(report, report["findings"][0]), base_url)
+                self.assertIn(base_url, w.markdown(report))
+                self.assertIn(base_url, w.html_report(report))
+                self.assertEqual(w.location(report, FINDING),
+                                 f"https://github.com/{REPOSITORY}/blob/{HEAD}/{self.new_path}#L1")
+
+    def test_unanswered_base_alias_is_preserved_once_with_a_valid_base_link(self):
+        model = FakeModel()
+        with patch.object(model, "run", side_effect=[
+            {"findings": [dict(self.finding, path=self.old_path)]},
+            {"findings": []}, copy.deepcopy(PRESENTATION),
+        ]):
+            report = w.review(self.github, PR, model)
+        self.assertEqual(report["state"], "reviewed")
+        self.assertEqual(len(report["findings"]), 1)
+        self.assertEqual(report["findings"][0]["path"], self.new_path)
+        self.assertEqual(report["findings"][0]["status"], "uncertain")
+        self.assertIn("Legacy%20Mapper%23.cs#L1", w.location(report, report["findings"][0]))
+
+    def test_unavailable_base_or_mismatched_evidence_remains_uncertain(self):
+        for sources in ({}, {(MERGE_BASE, self.old_path): "return somethingElse;\n"}):
+            with self.subTest(sources=sources):
+                self.github.sources = sources
+                context = w.RepositoryContext(self.github, PR)
+                result = w.validate_findings({"findings": [dict(self.finding, status="supported")]},
+                                             context, verification=True)
+                self.assertEqual(result[0]["status"], "uncertain")
+
+    def test_canonical_paths_take_precedence_and_renames_are_not_followed_recursively(self):
+        # A -> B and B -> C: a base finding on C must read B, not follow B -> A.
+        self.github.files.append(dict(FILE, filename="src/Latest.cs", status="renamed",
+                                      previous_filename=self.new_path))
+        self.github.pr["changed_files"] = 2
+        self.github.sources[(MERGE_BASE, self.new_path)] = "return intermediate;\n"
+        context = w.RepositoryContext(self.github, self.github.pr)
+        for path, expected in ((self.new_path, "return amount;"),
+                               ("src/Latest.cs", "return intermediate;")):
+            result = w.validate_findings({"findings": [dict(self.finding, path=path,
+                                         evidence=expected, status="supported")]}, context, verification=True)
+            self.assertEqual(result[0]["path"], path)
+            self.assertEqual(result[0]["status"], "supported")
+
+    def test_previous_path_cannot_bypass_source_restrictions(self):
+        for old_path in ("../outside.cs", "/etc/passwd", ".env", "secrets.json"):
+            with self.subTest(old_path=old_path):
+                self.github.files[0]["previous_filename"] = old_path
+                context = w.RepositoryContext(self.github, PR)
+                before = len(self.github.requests)
+                self.assertIn("error", context.read_file(self.new_path, "base"))
+                with self.assertRaises(w.ReviewError):
+                    w.validate_findings({"findings": [self.finding]}, context)
+                self.assertEqual(context.packet([])["patches"], [])
+                self.assertTrue(context.notes)
+                self.assertEqual(len(self.github.requests), before)
+
+    def test_modified_and_deleted_files_keep_their_original_paths(self):
+        for status, version in (("modified", "head"), ("modified", "base"), ("removed", "base")):
+            with self.subTest(status=status, version=version):
+                self.github.files[0] = dict(FILE, status=status)
+                self.github.sources[(MERGE_BASE, self.new_path)] = "return amount;\n"
+                context = w.RepositoryContext(self.github, PR)
+                finding = dict(FINDING if version == "head" else self.finding, status="supported")
+                result = w.validate_findings({"findings": [finding]}, context, verification=True)
+                self.assertEqual(result, [finding])
+                report = w.review(self.github, PR, None)
+                sha = HEAD if version == "head" else MERGE_BASE
+                self.assertEqual(w.location(report, finding),
+                                 f"https://github.com/{REPOSITORY}/blob/{sha}/{self.new_path}#L1")
 
 
 class PublishAndTriggerTests(unittest.TestCase):

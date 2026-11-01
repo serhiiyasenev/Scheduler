@@ -165,6 +165,8 @@ class RepositoryContext:
         if current["head"]["sha"] != self.head or current["base"]["sha"] != self.target_base:
             raise ReviewError("PR changed while collecting patches; rerun review")
         self.by_path = {f["filename"]: f for f in self.files}
+        self.by_previous_path = {f["previous_filename"]: f["filename"] for f in self.files
+                                 if f.get("status") == "renamed" and isinstance(f.get("previous_filename"), str)}
         self.cache = {}
         self.trees = {}
         self.trace = []
@@ -172,18 +174,31 @@ class RepositoryContext:
         self.tool_count = 0
         self.source_budget = 60000
 
+    def resolve_path(self, path, version):
+        """Return the canonical PR path and the actual path at the requested commit."""
+        # Canonical paths win when a previous filename is reused by another change.
+        if version == "base" and path not in self.by_path:
+            path = self.by_previous_path.get(path, path)
+        file = self.by_path.get(path, {})
+        source_path = (file.get("previous_filename") or path
+                       if version == "base" and file.get("status") == "renamed" else path)
+        return path, source_path
+
     def read_file(self, path, version="head", start_line=1):
         if version not in ("base", "head") or not permitted_source(path):
             return {"error": "File path or version is not permitted"}
         if type(start_line) is not int or start_line < 1:
             return {"error": "Invalid start line"}
-        key = (path, version)
+        path, source_path = self.resolve_path(path, version)
+        if not permitted_source(path) or not permitted_source(source_path):
+            return {"error": "File path or version is not permitted"}
+        key = (source_path, version)
         if key not in self.cache:
             if len(self.cache) >= 40:
                 return {"error": "File fetch budget exhausted"}
             sha = self.base if version == "base" else self.head
             try:
-                data = self.github.api(f"/contents/{urllib.parse.quote(path, safe='/')}?ref={sha}")
+                data = self.github.api(f"/contents/{urllib.parse.quote(source_path, safe='/')}?ref={sha}")
                 if (not isinstance(data, dict) or data.get("type") != "file" or
                         data.get("encoding") != "base64" or data.get("size", MAX_FILE_BYTES + 1) > MAX_FILE_BYTES):
                     return {"error": "Not a small regular text file"}
@@ -197,7 +212,7 @@ class RepositoryContext:
         excerpt = "\n".join(f"{i + 1}: {line}" for i, line in enumerate(lines[start_line-1:start_line+119], start_line-1))
         excerpt = excerpt[:min(12000, max(0, self.source_budget))]
         self.source_budget -= len(excerpt)
-        return {"path": path, "version": version, "total_lines": len(lines), "text": excerpt,
+        return {"path": path, "source_path": source_path, "version": version, "total_lines": len(lines), "text": excerpt,
                 "limited": start_line + 119 < len(lines) or len(excerpt) >= 12000 or self.source_budget == 0}
 
     def list_files(self, query):
@@ -247,7 +262,9 @@ class RepositoryContext:
         for f in self.files:
             path = f["filename"]
             patch = f.get("patch")
-            if not permitted_source(path) or not isinstance(patch, str) or not patch:
+            _, base_path = self.resolve_path(path, "base")
+            if (not permitted_source(path) or not permitted_source(base_path) or
+                    not isinstance(patch, str) or not patch):
                 self.notes.append(f"Patch unavailable/excluded: {path}")
                 continue
             if len(patches) >= MAX_FILES or remaining <= 0:
@@ -379,8 +396,9 @@ def validate_findings(value, context, verification=False):
     validate_schema(value, REVIEW_SCHEMA)
     result, seen = [], set()
     for f in value["findings"]:
-        path = f["path"]
-        if path not in context.by_path or not permitted_source(path) or f["line"] < 1:
+        path, source_path = context.resolve_path(f["path"], f["version"])
+        if (path not in context.by_path or f["line"] < 1 or
+                not all(permitted_source(p) for p in (f["path"], path, source_path))):
             raise ReviewError("Finding references an invalid location")
         if verification and f["status"] == "candidate":
             raise ReviewError("Verifier left an unverified candidate")
@@ -388,10 +406,10 @@ def validate_findings(value, context, verification=False):
         if key in seen:
             continue
         seen.add(key)
-        f = dict(f)
+        f = dict(f, path=path)
         if verification and f["status"] == "supported":
             context.read_file(path, f["version"], f["line"])
-            lines = context.cache.get((path, f["version"]), [])
+            lines = context.cache.get((source_path, f["version"]), [])
             cited = "\n".join(lines[f["line"]-1:f["line"]+7])
             if not f["evidence"].strip() or f["evidence"] not in cited:
                 f["status"] = "uncertain"
@@ -418,7 +436,8 @@ def review(github, pr, model):
     report = {"schema_version": 1, "repository": github.repository, "pr": pr["number"],
               "head_sha": context.head, "target_base_sha": context.target_base, "merge_base_sha": context.base,
               "state": "configuration_required", "findings": [], "presentation": {"summary": "AI-перевірку не виконано: налаштуйте Azure OpenAI за інструкцією docs/ai-pr-review.md.", "changes": [], "suggested_tests": []},
-              "files": [{"path": f["filename"], "status": f["status"], "additions": f["additions"], "deletions": f["deletions"]} for f in context.files],
+              "files": [{"path": f["filename"], "previous_path": f.get("previous_filename"),
+                         "status": f["status"], "additions": f["additions"], "deletions": f["deletions"]} for f in context.files],
               "ci_checks": checks, "coverage_notes": context.notes, "tool_trace": [], "usage": {}}
     if model is None:
         return report
@@ -457,7 +476,12 @@ def md(value):
 
 def location(report, finding):
     sha = report["head_sha"] if finding["version"] == "head" else report["merge_base_sha"]
-    path = urllib.parse.quote(finding["path"], safe="/")
+    path = finding["path"]
+    if finding["version"] == "base":
+        file = next((f for f in report["files"] if f["path"] == path), {})
+        if file.get("status") == "renamed":
+            path = file.get("previous_path") or path
+    path = urllib.parse.quote(path, safe="/")
     return f"https://github.com/{report['repository']}/blob/{sha}/{path}#L{finding['line']}"
 
 

@@ -16,6 +16,8 @@ Findings must use exact changed paths and original source line numbers from the
 unified diff, not positions inside the diff. For deleted code use version=base;
 otherwise version=head. Evidence must be a short exact source excerpt starting
 at the cited line (at most eight lines). Mark every finding status=candidate.
+For renames, use the patch's current path for findings on BOTH versions; the
+worker resolves previous_path at base without changing the finding identity.
 Use high only for material security, data-loss or serious correctness issues;
 medium for meaningful incorrect behavior; low for smaller actionable defects.
 Return at most 12 concrete findings, or an empty array if none is supported.

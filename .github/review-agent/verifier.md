@@ -25,3 +25,5 @@ alone also does not prove a finding false. New source-backed findings are allowe
 Do not suppress mapping risks: null/default behavior, precision, field exposure,
 IDs, permissions, time zones and API contract changes can be critical. Return
 at most 20 findings. When tool budget is exhausted, use uncertain as needed.
+
+Write all generated explanations in English, regardless of the language of the PR or source comments. Preserve code identifiers and exact evidence quotes unchanged.

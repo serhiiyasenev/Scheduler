@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
@@ -56,6 +58,40 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowedOrigins");
+
+// Protect all API routes until user-based identity and per-user access rules are added.
+app.Use(async (context, next) =>
+{
+    if (!context.Request.Path.StartsWithSegments("/api"))
+    {
+        await next();
+        return;
+    }
+
+    var expectedKey = app.Configuration["Security:ApiKey"];
+    if (string.IsNullOrWhiteSpace(expectedKey) || Encoding.UTF8.GetByteCount(expectedKey) < 32)
+    {
+        context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+        return;
+    }
+
+    if (!context.Request.Headers.TryGetValue("X-Api-Key", out var supplied)
+        || supplied.Count != 1 || string.IsNullOrEmpty(supplied[0]))
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return;
+    }
+
+    var expectedHash = SHA256.HashData(Encoding.UTF8.GetBytes(expectedKey));
+    var providedHash = SHA256.HashData(Encoding.UTF8.GetBytes(supplied[0]));
+    if (!CryptographicOperations.FixedTimeEquals(expectedHash, providedHash))
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return;
+    }
+
+    await next();
+});
 app.UseAuthorization();
 
 app.MapControllers();
